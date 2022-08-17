@@ -1,48 +1,159 @@
 var arr = [[], [], [], [], [], [], [], [], []]
+var temp = [[], [], [], [], [], [], [], [], []]
 
 for (var i = 0; i < 9; i++) {
-	for (var j = 0; j < 9; j++) {
-		arr[i][j] = document.getElementById(i * 9 + j);
+    for (var j = 0; j < 9; j++) {
+        arr[i][j] = document.getElementById(i * 9 + j);
 
-	}
+    }
 }
 
+function initializeTemp(temp) {
+
+    for (var i = 0; i < 9; i++) {
+        for (var j = 0; j < 9; j++) {
+            temp[i][j] = false;
+
+        }
+    }
+}
+
+
+function setTemp(board, temp) {
+
+    for (var i = 0; i < 9; i++) {
+        for (var j = 0; j < 9; j++) {
+            if (board[i][j] != 0) {
+                temp[i][j] = true;
+            }
+
+        }
+    }
+}
+
+
+function setColor(temp) {
+
+    for (var i = 0; i < 9; i++) {
+        for (var j = 0; j < 9; j++) {
+            if (temp[i][j] == true) {
+                arr[i][j].style.color = "#DC3545";
+            }
+
+        }
+    }
+}
+
+function resetColor() {
+
+    for (var i = 0; i < 9; i++) {
+        for (var j = 0; j < 9; j++) {
+
+            arr[i][j].style.color = "green";
+
+
+        }
+    }
+}
 
 var board = [[], [], [], [], [], [], [], [], []]
 
-function FillBoard(board) {
-	for (var i = 0; i < 9; i++) {
-		for (var j = 0; j < 9; j++) {
-			if (board[i][j] != 0) {
-				arr[i][j].innerText = board[i][j]
-			}
 
-			else
-				arr[i][j].innerText = ''
-		}
-	}
+let button = document.getElementById('generate-sudoku')
+let solve = document.getElementById('solve')
+
+console.log(arr)
+function changeBoard(board) {
+    for (var i = 0; i < 9; i++) {
+        for (var j = 0; j < 9; j++) {
+            if (board[i][j] != 0) {
+
+                arr[i][j].innerText = board[i][j]
+            }
+
+            else
+                arr[i][j].innerText = ''
+        }
+    }
 }
 
-let GetPuzzle = document.getElementById('GetPuzzle')
-let SolvePuzzle = document.getElementById('SolvePuzzle')
 
-GetPuzzle.onclick = function () {
-	var xhrRequest = new XMLHttpRequest()
-	xhrRequest.onload = function () {
-		var response = JSON.parse(xhrRequest.response)
-		console.log(response)
-		board = response.board
-		FillBoard(board)
-	}
-	xhrRequest.open('get', 'https://sugoku.herokuapp.com/board?difficulty=easy')
-	//we can change the difficulty of the puzzle the allowed values of difficulty are easy, medium, hard and random
-	xhrRequest.send()
+button.onclick = function () {
+    var xhrRequest = new XMLHttpRequest()
+    xhrRequest.onload = function () {
+        var response = JSON.parse(xhrRequest.response)
+        console.log(response)
+        initializeTemp(temp)
+        resetColor()
+
+        board = response.board
+        setTemp(board, temp)
+        setColor(temp)
+        changeBoard(board)
+    }
+    xhrRequest.open('get', 'https://sugoku.herokuapp.com/board?difficulty=easy')
+    //we can change the difficulty of the puzzle the allowed values of difficulty are easy, medium, hard and random
+    xhrRequest.send()
 }
 
-SolvePuzzle.onclick = () => {
-	SudokuSolver(board, 0, 0, 9);
-};
+function isSafe(board, r, c, no){
+    //not repeating in same row or column
+    for(let i=0; i<9; i++){
+        if(board[i][c] == no || board[r][i] == no){
+            return false;
+        }
+    }
+    //subgrid
+    var sx = r - r%3;
+    var sy = c - c%3;
 
-function SudokuSolver(board, i, j, n) {
-	// Write your Code here
+    for(var x=sx; x<sx+3; x++){
+        for(var y = sy; y< sy+3; y++){
+            if(board[x][y] == no)
+                return false;
+        }
+    }
+    return true;
+}
+
+// you can make a call to changeboard(board) function to update the state on the screen
+function solveSudokuHelper(board,r,c){
+
+    //base case 
+    if(r==9){
+        changeBoard(board);
+        return true;
+    }
+    //other cases - write your code here
+    if(c==9){
+        return solveSudokuHelper(board, r+1, 0);
+    }
+    //pre-filled cell, skip it
+    if(board[r][c]!=0){
+        return solveSudokuHelper(board, r, c+1);
+    }
+
+    // There is 0 in the current location,
+    for(var i=1; i<=9; i++){
+        if(isSafe(board,r,c,i)){
+            board[r][c] = i;
+            var success = solveSudokuHelper(board, r, c+1);
+            if(success)
+                return true;
+            board[r][c] = 0;
+        }
+    }
+   
+    return false;    //no way to fill the given position with any value from 1 to 9
+   //finish your code here
+
+}
+
+function solveSudoku(board) {
+    solveSudokuHelper(board,0,0);
+}
+
+
+solve.onclick = function () {
+    solveSudoku(board)
 }
